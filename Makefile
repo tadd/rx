@@ -16,7 +16,7 @@ rx_test.o	: rx_test.c rx.h
 rx.o	: rx.c rx.h
 
 clean	:
-	rm -f *.o
+	rm -f *.o rx_example rx_test
 
 dist	:
 	rm -rf $(DIST)
