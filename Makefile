@@ -1,4 +1,4 @@
-PROF=-pg
+PROF= #-pg
 CFLAGS=-g -Wall $(PROF) -O2
 DIST=rx-1.1.2
 
