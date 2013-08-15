@@ -718,6 +718,9 @@ static void rx_find(const struct rx *r,
 	  id = bv_rank(r->ev, pos, 1) - 2;
 	}
         rv = cb(cookie, (const char *)buf, cur + 1, id);
+        if (rv) {
+            return;
+        }
       }
       int child_pos = bv_select(r->ev, bv_rank(r->ev, pos, 1) - 1, 0) + 1;
       /*printf("match %d->%d (%c),%d\n", pos, child_pos,
@@ -818,10 +821,12 @@ static int predict_cb(void *cookie, const char *c, int len, int edge_id) {
     char buf[MAX_DEPTH + 1];
     strcpy(buf, c);
     int pos = bv_select(pred->r->ev, edge_id + 1, 1);
-    rx_start_traverse(pred->r, pred->flags,
-                      pred->original_cookie, pred->cb,
-                      (unsigned char *)buf, len, pos);
-    return 1;
+    int terminated = rx_start_traverse(pred->r, pred->flags,
+                                       pred->original_cookie, pred->cb,
+                                       (unsigned char *)buf, len, pos);
+    if (terminated) {
+	return 1;
+    }
   }
   return 0;
 }
