@@ -48,9 +48,9 @@ static int cb_0(void *cookie, const char *c, int len, int id) {
   printf("%s id=%d len=%d\n", buf, id, len);
   key_len = strlen(info->key);
   if (info->is_predictive) {
-    EXPECT_TRUE(len >= strlen(info->key));
+    EXPECT_TRUE(len >= key_len);
   } else {
-    EXPECT_TRUE(len <= strlen(info->key));
+    EXPECT_TRUE(len <= key_len);
   }
   return 0;
 }
