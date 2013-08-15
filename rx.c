@@ -109,6 +109,7 @@ struct rx_builder *rx_builder_create() {
   b->nr_strs = 0;
   b->str_array_size = 0;
   b->strs = NULL;
+  b->indexes = NULL;
   return b;
 }
 
