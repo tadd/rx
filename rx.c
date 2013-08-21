@@ -201,9 +201,13 @@ static int byte_order_swap(int s) {
 }
 
 static int is_be() {
-  int x = 1;
-  char *p = (char *)&x;
-  return *p == 0;
+  static int result = -1;
+  if (result == -1) {
+    int x = 1;
+    char *p = (char *)&x;
+    result = (*p == 0);
+  }
+  return result;
 }
 
 static void push_int(struct bit_stream *bs, int num) {
