@@ -96,6 +96,9 @@ struct rx_builder *rx_builder_create() {
   int i;
   /**/
   b = (struct rx_builder *)malloc(sizeof(*b));
+  if (!b) {
+    return NULL;
+  }
   /**/
   b->nr_bits = 8;
   /**/
@@ -139,11 +142,19 @@ void rx_builder_add(struct rx_builder *b, const char *key) {
     return ;
   }
   if (b->nr_strs == b->str_array_size) {
+    char **strs;
     b->str_array_size *= 2;
     b->str_array_size++;
-    b->strs = (char **)realloc(b->strs, b->str_array_size * sizeof(char *));
+    strs = (char **)realloc(b->strs, b->str_array_size * sizeof(char *));
+    if (!strs) {
+      return;
+    }
+    b->strs = strs;
   }
   b->strs[b->nr_strs] = strdup(key);
+  if (!b->strs[b->nr_strs]) {
+    return ;
+  }
   ++b->nr_strs;
 }
 
@@ -154,8 +165,13 @@ void rx_builder_dump(struct rx_builder *b) {
 
 static void ensure_bits(struct bit_stream *bs, int nr) {
   while (bs->bits_array_len * 8 <= bs->nr_bits_in_array + nr) {
+    unsigned char *bits;
     bs->bits_array_len = bs->bits_array_len * 2 + 1;
-    bs->bits = (unsigned char *)realloc(bs->bits, bs->bits_array_len);
+    bits = (unsigned char *)realloc(bs->bits, bs->bits_array_len);
+    if (!bits) {
+      return ;
+    }
+    bs->bits = bits;
   }
 }
 
@@ -256,6 +272,13 @@ static void write_tree(struct rx_builder *b) {
   char **back_strs = (char **)malloc(sizeof(char *) *nr_strs);
   int *orig_indexes = (int *)malloc(sizeof(int) *nr_strs);
   int *back_indexes = (int *)malloc(sizeof(int) *nr_strs);
+  if (!strs || !back_strs || !orig_indexes || !back_indexes) {
+    free(strs);
+    free(back_strs);
+    free(orig_indexes);
+    free(back_indexes);
+    return ;
+  }
   for (i = 0; i < nr_strs; ++i) {
     orig_indexes[i] = i;
   }
@@ -368,6 +391,9 @@ static void sort_strs(struct rx_builder *b) {
   b->max_nodes = 0;
   /* uniqify */
   new_strs = (char **)malloc(b->nr_strs * sizeof(char *));
+  if (!new_strs) {
+    return ;
+  }
   for (i = 0; i < b->nr_strs; ++i) {
     if (!prev_str || strcmp(b->strs[i], prev_str)) {
       new_strs[nr] = b->strs[i];
@@ -467,6 +493,9 @@ static int count_bits_in_chunk(struct bv *b, int c, int limit) {
 
 static struct bv *bv_alloc(const unsigned char *v, int nr_bytes) {
   struct bv *b = (struct bv *)malloc(sizeof(*b));
+  if (!b) {
+    return NULL;
+  }
   int nr_chunk = (nr_bytes + CHUNK_SIZE - 1) / CHUNK_SIZE;
   int i;
   int total = 0;
@@ -476,6 +505,10 @@ static struct bv *bv_alloc(const unsigned char *v, int nr_bytes) {
   /* make index heap */
   b->index_len = index_len(nr_chunk);
   b->index = (int *)malloc(b->index_len * sizeof(int));
+  if (!b->index) {
+    free(b);
+    return NULL;
+  }
   /**/
   for (i = 0; i < b->index_len; ++i) {
     total += count_bits_in_chunk(b, i, nr_bytes);
@@ -485,6 +518,9 @@ static struct bv *bv_alloc(const unsigned char *v, int nr_bytes) {
 }
 
 static void bv_free(struct bv *b) {
+  if (!b) {
+    return ;
+  }
   free(b->index);
   free(b);
 }
@@ -598,6 +634,9 @@ struct rx *rx_open(const unsigned char *bits) {
   /*printf("%d bytes for edges\n", c[0]);
   printf("%d bytes for terminals\n", c[1]);
   printf("%d bits for transitions\n", c[2]);*/
+  if (!r) {
+    return NULL;
+  }
 
   r->edges = &bits[16];
   r->terminals = &bits[16 + read_int(c[0])];
@@ -612,6 +651,11 @@ struct rx *rx_open(const unsigned char *bits) {
   }
   r->ev = bv_alloc(r->edges, read_int(c[0]));
   r->tv = bv_alloc(r->terminals, read_int(c[1]));
+  if (!r->ev || !r->tv) {
+    bv_free(r->ev);
+    bv_free(r->tv);
+    return NULL;
+  }
   return r;
 }
 
@@ -866,6 +910,9 @@ struct rbx_builder {
 
 struct rbx_builder *rbx_builder_create() {
   struct rbx_builder *builder = (struct rbx_builder *)malloc(sizeof(*builder));
+  if (!builder) {
+    return NULL;
+  }
   builder->min_element_len = 4;
   builder->element_len_step = 1;
   init_bit_stream(&builder->blobs);
@@ -952,7 +999,14 @@ struct rbx {
 struct rbx *rbx_open(const unsigned char *bits) {
   struct rbx *r = (struct rbx *)malloc(sizeof(*r));
   const int *c = (const int *)bits;
+  if (!r) {
+    return NULL;
+  }
   r->lv = bv_alloc((const unsigned char *)&c[4], read_int(c[0]));
+  if (!r->lv) {
+    free(r);
+    return NULL;
+  }
   r->base_len = read_int(c[1]);
   r->len_step = read_int(c[2]);
   r->body = &bits[read_int(c[0]) + 16];
