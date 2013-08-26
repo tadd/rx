@@ -600,14 +600,16 @@ static int bv_select_naive(const struct bv *b, int start, int n, int z) {
 
 static int find_chunk(const struct bv *b, int n, int z,
 		      int start, int end) {
-  int mid = (start + end) / 2;
-  if (get_total(b, mid, z) >= n) {
-    if (mid == 0 || get_total(b, mid - 1, z) <= n) {
-      return mid;
+  for(;;) {
+    int mid = (start + end) / 2;
+    if (get_total(b, mid, z) >= n) {
+      if (mid == 0 || get_total(b, mid - 1, z) <= n) {
+	return mid;
+      }
+      end = mid;
+    } else {
+      start = mid;
     }
-    return find_chunk(b, n, z, start, mid);
-  } else {
-    return find_chunk(b, n, z, mid, end);
   }
 }
 
